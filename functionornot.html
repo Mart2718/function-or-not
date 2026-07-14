@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Is This a Function? — Math 172 | SAC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #1a1d23;
+  --bg-elev: #242830;
+  --bg-card: #2d323c;
+  --border: #3a4050;
+  --text: #e8ecf1;
+  --text-dim: #a0a8b4;
+  --crimson: #c8102e;
+  --crimson-dark: #a80c26;
+  --teal: #14b8a6;
+  --gold: #f59e0b;
+  --green: #22c55e;
+  --red: #ef4444;
+  --shadow: 0 8px 24px rgba(0,0,0,0.4);
+  --font: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --mono: 'DM Mono', ui-monospace, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overscroll-behavior: none; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+}
+.app {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 14px 16px 8px;
+  gap: 12px;
+  min-height: 0;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+h1 .accent { color: var(--crimson); }
+.mode-toggle {
+  display: flex;
+  background: var(--bg-elev);
+  border-radius: 999px;
+  padding: 3px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+}
+.mode-toggle button {
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  transition: all 0.15s;
+}
+.mode-toggle button.active {
+  background: var(--crimson);
+  color: white;
+}
+
+.score-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.score-bar .metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+.score-bar .metric .value {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+.score-bar .metric.streak .value.flame { color: var(--gold); }
+
+.instructions {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 0 8px;
+}
+
+.stage {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 380px;
+  touch-action: none;
+}
+.card-stack {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  aspect-ratio: 3 / 4;
+}
+.card {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+  cursor: grab;
+  will-change: transform, opacity;
+  transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s;
+}
+.card.top { z-index: 3; }
+.card.behind { z-index: 2; transform: scale(0.95) translateY(10px); opacity: 0.65; pointer-events: none; }
+.card.behind2 { z-index: 1; transform: scale(0.9) translateY(20px); opacity: 0.35; pointer-events: none; }
+.card.dragging { transition: none; cursor: grabbing; }
+.card.exit-up { transform: scale(0.9) translateY(-24px); opacity: 0; pointer-events: none; }
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+.card-header .rep-badge {
+  background: var(--bg-elev);
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-weight: 500;
+}
+.card-header .card-num { font-family: var(--mono); }
+
+.card-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pairs-content {
+  font-family: var(--mono);
+  font-size: 15px;
+  line-height: 2;
+  text-align: center;
+  color: var(--text);
+  padding: 0 4px;
+}
+.pairs-content .brace { color: var(--text-dim); }
+
+.table-content {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-family: var(--mono);
+  font-size: 15px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.table-content th, .table-content td {
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 14px;
+  text-align: center;
+}
+.table-content th { border-right: 1px solid var(--border); }
+.table-content tr:last-child td, .table-content tr:last-child th { border-bottom: 0; }
+.table-content th:last-child, .table-content td:last-child { border-right: 0; }
+.table-content th {
+  background: var(--bg-elev);
+  color: var(--crimson);
+  font-weight: 500;
+}
+
+.graph-content { width: 100%; max-width: 240px; }
+.graph-content svg { width: 100%; height: auto; display: block; }
+
+.mapping-content { width: 100%; max-width: 260px; }
+.mapping-content svg { width: 100%; height: auto; display: block; }
+
+.eq-content {
+  font-family: 'DM Mono', ui-monospace, monospace;
+  font-size: 30px;
+  text-align: center;
+  color: var(--text);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.eq-content sup { font-size: 0.6em; vertical-align: super; }
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+.peek-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.peek-btn:hover { border-color: var(--crimson); color: var(--text); }
+
+/* swipe indicators */
+.indicator {
+  position: absolute;
+  top: 24px;
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 3px solid;
+  opacity: 0;
+  transition: opacity 0.12s;
+  pointer-events: none;
+  letter-spacing: 0.05em;
+  z-index: 4;
+  text-transform: uppercase;
+}
+.indicator.left {
+  left: 20px;
+  color: var(--gold);
+  border-color: var(--gold);
+  transform: rotate(-12deg);
+}
+.indicator.right {
+  right: 20px;
+  color: var(--teal);
+  border-color: var(--teal);
+  transform: rotate(12deg);
+}
+.card.drag-right .indicator.right { opacity: 1; }
+.card.drag-left .indicator.left { opacity: 1; }
+
+/* result overlay */
+.result-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-card);
+  border-radius: 20px;
+  display: none;
+  flex-direction: column;
+  padding: 18px;
+  z-index: 5;
+  border: 2px solid transparent;
+}
+.card.reviewing .result-overlay { display: flex; animation: pop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1); }
+@keyframes pop {
+  0% { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.result-overlay.correct { border-color: var(--green); }
+.result-overlay.wrong { border-color: var(--red); }
+.result-overlay.peek { border-color: var(--crimson); }
+
+.result-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.result-header.correct { color: var(--green); }
+.result-header.wrong { color: var(--red); }
+.result-header.peek { color: var(--crimson); }
+.result-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.result-icon.correct { background: var(--green); color: white; }
+.result-icon.wrong { background: var(--red); color: white; }
+.result-icon.peek { background: var(--crimson); color: white; font-size: 16px; }
+
+.result-verdict {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+.result-verdict strong { color: var(--text); font-weight: 500; }
+
+.result-why {
+  flex: 1;
+  background: var(--bg-elev);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  overflow-y: auto;
+  border-left: 3px solid var(--crimson);
+}
+.result-why h4 {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.result-why .misconception {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  color: var(--gold);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.result-why .misconception strong { color: var(--gold); font-weight: 700; }
+
+.result-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.next-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: 0;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  background: var(--crimson);
+  color: white;
+}
+.next-btn:hover { background: var(--crimson-dark); }
+
+/* action bar (tap fallback + accessibility) */
+.action-bar {
+  display: flex;
+  gap: 10px;
+  padding: 4px 0;
+}
+.action-bar button {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  border: 2px solid;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.action-not { color: var(--gold); border-color: var(--gold); }
+.action-not:hover { background: rgba(245, 158, 11, 0.1); }
+.action-fn { color: var(--teal); border-color: var(--teal); }
+.action-fn:hover { background: rgba(20, 184, 166, 0.1); }
+.action-bar button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* end summary */
+.summary {
+  display: none;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px 20px;
+  text-align: center;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 340px;
+}
+.summary.active { display: flex; }
+.summary h2 { font-size: 20px; }
+.summary .big-score {
+  font-family: var(--mono);
+  font-size: 44px;
+  color: var(--teal);
+  font-weight: 500;
+  line-height: 1;
+}
+.summary .best-streak {
+  font-size: 12px;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.summary .breakdown {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.summary .breakdown .cat {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 4px;
+  background: var(--bg);
+  border-radius: 8px;
+  gap: 2px;
+  align-items: center;
+}
+.summary .breakdown .cat .score {
+  font-family: var(--mono);
+  font-size: 15px;
+  color: var(--text);
+  font-weight: 500;
+}
+.summary .breakdown .cat .label {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 9px;
+  color: var(--text-dim);
+}
+.summary .restart-btn {
+  background: var(--crimson);
+  color: white;
+  padding: 14px 20px;
+  border: 0;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.summary .restart-btn:hover { background: var(--crimson-dark); }
+
+footer {
+  text-align: center;
+  padding: 12px 16px 14px;
+  font-size: 10px;
+  color: var(--text-dim);
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  letter-spacing: 0.03em;
+}
+footer .brand { color: var(--crimson); }
+
+@media (max-height: 720px) {
+  .card-stack { max-width: 300px; }
+  h1 { font-size: 16px; }
+  .score-bar { padding: 8px 10px; }
+  .score-bar .metric .value { font-size: 18px; }
+  .eq-content { font-size: 26px; }
+  .stage { min-height: 340px; }
+}
+@media (max-height: 620px) {
+  .card-stack { max-width: 270px; }
+  .stage { min-height: 300px; }
+  .eq-content { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Is This a <span class="accent">Function</span>?</h1>
+    <div class="mode-toggle" role="tablist" aria-label="Mode">
+      <button data-mode="student" class="active" role="tab" aria-selected="true">Student</button>
+      <button data-mode="teacher" role="tab" aria-selected="false">Teacher</button>
+    </div>
+  </header>
+
+  <div class="score-bar" aria-live="polite">
+    <div class="metric">
+      <span class="value" id="progress">1/20</span>
+      <span>Card</span>
+    </div>
+    <div class="metric streak">
+      <span class="value" id="streak">0</span>
+      <span>Streak 🔥</span>
+    </div>
+    <div class="metric">
+      <span class="value" id="score">0</span>
+      <span>Correct</span>
+    </div>
+  </div>
+
+  <div class="instructions" id="instructions">
+    Swipe <span style="color:var(--gold); font-weight:500">← Not a Function</span> · <span style="color:var(--teal); font-weight:500">Function →</span>
+  </div>
+
+  <div class="stage">
+    <div class="card-stack" id="stack" aria-live="polite"></div>
+    <div class="summary" id="summary" role="region" aria-label="Results">
+      <h2>Round complete!</h2>
+      <div class="big-score" id="finalScore">0 / 20</div>
+      <div class="best-streak" id="bestStreakLine">Best streak: 0</div>
+      <div class="breakdown" id="breakdown"></div>
+      <button class="restart-btn" id="restart">New Round</button>
+    </div>
+  </div>
+
+  <div class="action-bar" id="actionBar">
+    <button class="action-not" data-answer="false" aria-label="Not a function">✗ Not a Function</button>
+    <button class="action-fn" data-answer="true" aria-label="Function">✓ Function</button>
+  </div>
+</div>
+
+<footer>
+  Math 172 · Precalculus · v1.0 · <span class="brand">Built for Santa Ana College</span>
+</footer>
+
+<script>
+'use strict';
+
+/* =========================================================
+   DECK — 20 cards, 4 per representation
+   Balanced: 10 functions, 10 non-functions
+   Misconception callouts on cards where intuition tends to fail
+   ========================================================= */
+const DECK = [
+  // ORDERED PAIRS (4)
+  { id: 1, type: 'pairs', label: 'Ordered Pairs',
+    content: [[1,2],[2,4],[3,6],[4,8]],
+    isFunction: true,
+    why: 'Each input appears exactly once: 1, 2, 3, 4 each map to a single output. The rule y = 2x assigns exactly one output per input.',
+    misconception: null },
+  { id: 2, type: 'pairs', label: 'Ordered Pairs',
+    content: [[1,2],[1,3],[2,4],[3,5]],
+    isFunction: false,
+    why: 'The input x = 1 is paired with two different outputs (2 and 3). A function requires each input to map to exactly one output.',
+    misconception: 'Scan for a repeated x-value with different y-values — that\u2019s the fingerprint of a non-function.' },
+  { id: 3, type: 'pairs', label: 'Ordered Pairs',
+    content: [[-2,5],[-1,5],[0,5],[1,5]],
+    isFunction: true,
+    why: 'Every input has exactly one output. Multiple inputs sharing the same output is allowed — this is the constant function f(x) = 5.',
+    misconception: 'Repeated y-values do NOT break the function rule. Only repeated x-values with different y-values disqualify a relation.' },
+  { id: 4, type: 'pairs', label: 'Ordered Pairs',
+    content: [[0,1],[2,3],[0,4],[5,7]],
+    isFunction: false,
+    why: 'The input x = 0 is paired with two different outputs (1 and 4). One input, two outputs — not a function.',
+    misconception: null },
+
+  // TABLES (4)
+  { id: 5, type: 'table', label: 'Table',
+    content: { x: [1,2,3,4], y: [3,6,9,12] },
+    isFunction: true,
+    why: 'Each x-value appears once and each is assigned exactly one y-value. The rule y = 3x fits every row.',
+    misconception: null },
+  { id: 6, type: 'table', label: 'Table',
+    content: { x: [-1,0,1,-1], y: [2,3,4,5] },
+    isFunction: false,
+    why: 'The input x = -1 shows up twice with different outputs (2 in the first column, 5 in the fourth). A function must assign each input a single output.',
+    misconception: null },
+  { id: 7, type: 'table', label: 'Table',
+    content: { x: [0,1,2,3,4], y: [7,7,7,7,7] },
+    isFunction: true,
+    why: 'Every input has exactly one output. Multiple inputs sharing the same output is allowed — this is the constant function y = 7.',
+    misconception: 'Repeated outputs are fine. A function is only broken by a repeated input with different outputs.' },
+  { id: 8, type: 'table', label: 'Table',
+    content: { x: [2,3,3,4], y: [1,2,5,6] },
+    isFunction: false,
+    why: 'The input x = 3 has two different outputs (2 and 5). Not a function.',
+    misconception: null },
+
+  // GRAPHS (4)
+  { id: 9, type: 'graph', label: 'Graph',
+    content: { kind: 'line', m: 2, b: -1 },
+    isFunction: true,
+    why: 'Every vertical line crosses this graph at most once. The line y = 2x - 1 passes the Vertical Line Test.',
+    misconception: null },
+  { id: 10, type: 'graph', label: 'Graph',
+    content: { kind: 'parabola-up' },
+    isFunction: true,
+    why: 'An upward-opening parabola passes the Vertical Line Test — every vertical line hits the curve at most once.',
+    misconception: 'A curved graph can still be a function. Curvature isn\u2019t the disqualifier — multiple y-values above one x-value is.' },
+  { id: 11, type: 'graph', label: 'Graph',
+    content: { kind: 'parabola-right' },
+    isFunction: false,
+    why: 'A sideways parabola fails the Vertical Line Test — most vertical lines cross the curve at two points, meaning one input maps to two outputs.',
+    misconception: 'It looks like a parabola, but it opens sideways. Orientation matters for the VLT.' },
+  { id: 12, type: 'graph', label: 'Graph',
+    content: { kind: 'circle', r: 3 },
+    isFunction: false,
+    why: 'A circle fails the Vertical Line Test. Almost every vertical line through the circle crosses it at two points — one input, two outputs.',
+    misconception: null },
+
+  // MAPPING DIAGRAMS (4)
+  { id: 13, type: 'mapping', label: 'Mapping Diagram',
+    content: { x: ['a','b','c'], y: [1,2,3], links: [[0,0],[1,1],[2,2]] },
+    isFunction: true,
+    why: 'Each input on the left has exactly one arrow leaving it. That\u2019s the mapping-diagram signature of a function.',
+    misconception: null },
+  { id: 14, type: 'mapping', label: 'Mapping Diagram',
+    content: { x: ['a','b'], y: [1,2,3], links: [[0,0],[0,1],[1,2]] },
+    isFunction: false,
+    why: 'The input a has two arrows leaving it — one to 1 and one to 2. Two outputs from a single input breaks the function rule.',
+    misconception: null },
+  { id: 15, type: 'mapping', label: 'Mapping Diagram',
+    content: { x: [1,2,3], y: ['x','y'], links: [[0,0],[1,0],[2,1]] },
+    isFunction: true,
+    why: 'Every input on the left has exactly one arrow leaving it. Two inputs sharing the same output (both 1 and 2 point to x) is allowed — this is a many-to-one function.',
+    misconception: 'Multiple inputs pointing to the same output is fine. The rule only restricts each input to one output, not the reverse.' },
+  { id: 16, type: 'mapping', label: 'Mapping Diagram',
+    content: { x: [1,2], y: ['a','b','c'], links: [[0,0],[0,1],[1,2]] },
+    isFunction: false,
+    why: 'The input 1 has arrows going to both a and b — two outputs from one input. Not a function.',
+    misconception: null },
+
+  // EQUATIONS (4)
+  { id: 17, type: 'equation', label: 'Equation',
+    content: 'y = 3x - 5',
+    isFunction: true,
+    why: 'For any value of x, the expression 3x - 5 produces exactly one value of y. Linear equations in the form y = mx + b are always functions of x.',
+    misconception: null },
+  { id: 18, type: 'equation', label: 'Equation',
+    content: 'y² = x',
+    isFunction: false,
+    why: 'Solving for y gives y = ±√x. For any positive x, there are two y-values (positive and negative root). One input, two outputs — not a function of x.',
+    misconception: null },
+  { id: 19, type: 'equation', label: 'Equation',
+    content: 'y = |x|',
+    isFunction: true,
+    why: 'For each x, the absolute value produces exactly one non-negative output. |x| is single-valued, so this is a function.',
+    misconception: 'Absolute value can look unusual, but it\u2019s single-valued: |−3| is 3, not both 3 and −3.' },
+  { id: 20, type: 'equation', label: 'Equation',
+    content: 'x² + y² = 25',
+    isFunction: false,
+    why: 'Solving for y gives y = ±√(25 - x²). For most x in [-5, 5] there are two y-values. This equation describes a circle — not a function of x.',
+    misconception: null }
+];
+
+/* =========================================================
+   STATE
+   ========================================================= */
+const state = {
+  mode: 'student',
+  deck: [],
+  idx: 0,
+  correct: 0,
+  streak: 0,
+  bestStreak: 0,
+  results: [],
+  reviewing: false,
+  advancing: false
+};
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function initDeck() {
+  state.deck = state.mode === 'teacher' ? DECK.slice() : shuffle(DECK);
+  state.idx = 0;
+  state.correct = 0;
+  state.streak = 0;
+  state.bestStreak = 0;
+  state.results = [];
+  state.reviewing = false;
+  state.advancing = false;
+}
+
+/* =========================================================
+   DOM refs
+   ========================================================= */
+const stack = document.getElementById('stack');
+const summary = document.getElementById('summary');
+const actionBar = document.getElementById('actionBar');
+const scoreEl = document.getElementById('score');
+const streakEl = document.getElementById('streak');
+const progressEl = document.getElementById('progress');
+const instructions = document.getElementById('instructions');
+
+function updateHUD() {
+  scoreEl.textContent = state.correct;
+  streakEl.textContent = state.streak;
+  streakEl.classList.toggle('flame', state.streak >= 3);
+  const shown = Math.min(state.idx + 1, DECK.length);
+  progressEl.textContent = `${shown}/${DECK.length}`;
+}
+
+/* =========================================================
+   CONTENT RENDERERS
+   ========================================================= */
+function renderContent(card) {
+  switch (card.type) {
+    case 'pairs': return renderPairs(card.content);
+    case 'table': return renderTable(card.content);
+    case 'graph': return renderGraph(card.content, card.id);
+    case 'mapping': return renderMapping(card.content, card.id);
+    case 'equation': return renderEquation(card.content);
+  }
+  return '';
+}
+
+function renderPairs(pairs) {
+  const inner = pairs.map(([a,b]) => `(${a}, ${b})`).join(',&nbsp; ');
+  return `<div class="pairs-content"><span class="brace">{</span>&nbsp;${inner}&nbsp;<span class="brace">}</span></div>`;
+}
+
+function renderTable({ x, y }) {
+  const xs = x.map(v => `<td>${v}</td>`).join('');
+  const ys = y.map(v => `<td>${v}</td>`).join('');
+  return `<table class="table-content">
+    <tr><th>x</th>${xs}</tr>
+    <tr><th>y</th>${ys}</tr>
+  </table>`;
+}
+
+function renderGraph(g, cardId) {
+  const size = 200;
+  const cx = size/2, cy = size/2;
+  const scale = 16; // px per unit
+  let curve = '';
+  if (g.kind === 'line') {
+    const x1 = -5, x2 = 5;
+    const y1 = g.m * x1 + g.b;
+    const y2 = g.m * x2 + g.b;
+    curve = `<line x1="${cx + x1*scale}" y1="${cy - y1*scale}" x2="${cx + x2*scale}" y2="${cy - y2*scale}" stroke="var(--crimson)" stroke-width="2.5" stroke-linecap="round"/>`;
+  } else if (g.kind === 'parabola-up') {
+    let d = '';
+    for (let x = -4.5; x <= 4.5; x += 0.15) {
+      const y = 0.4 * x * x - 2;
+      const px = cx + x * scale;
+      const py = cy - y * scale;
+      d += (d === '' ? 'M' : 'L') + px.toFixed(1) + ',' + py.toFixed(1) + ' ';
+    }
+    curve = `<path d="${d}" fill="none" stroke="var(--crimson)" stroke-width="2.5" stroke-linecap="round"/>`;
+  } else if (g.kind === 'parabola-right') {
+    let d = '';
+    for (let y = -4.5; y <= 4.5; y += 0.15) {
+      const x = 0.4 * y * y - 2;
+      const px = cx + x * scale;
+      const py = cy - y * scale;
+      d += (d === '' ? 'M' : 'L') + px.toFixed(1) + ',' + py.toFixed(1) + ' ';
+    }
+    curve = `<path d="${d}" fill="none" stroke="var(--crimson)" stroke-width="2.5" stroke-linecap="round"/>`;
+  } else if (g.kind === 'circle') {
+    curve = `<circle cx="${cx}" cy="${cy}" r="${g.r * scale}" fill="none" stroke="var(--crimson)" stroke-width="2.5"/>`;
+  }
+
+  let grid = '';
+  for (let i = -5; i <= 5; i++) {
+    if (i === 0) continue;
+    grid += `<line x1="${cx + i*scale}" y1="0" x2="${cx + i*scale}" y2="${size}" stroke="#3a4050" stroke-width="0.5" opacity="0.4"/>`;
+    grid += `<line x1="0" y1="${cy + i*scale}" x2="${size}" y2="${cy + i*scale}" stroke="#3a4050" stroke-width="0.5" opacity="0.4"/>`;
+  }
+  const axes = `
+    <line x1="0" y1="${cy}" x2="${size}" y2="${cy}" stroke="#a0a8b4" stroke-width="1"/>
+    <line x1="${cx}" y1="0" x2="${cx}" y2="${size}" stroke="#a0a8b4" stroke-width="1"/>
+    <text x="${size-6}" y="${cy-6}" fill="#a0a8b4" font-size="10" font-family="DM Mono, monospace" text-anchor="end">x</text>
+    <text x="${cx+6}" y="12" fill="#a0a8b4" font-size="10" font-family="DM Mono, monospace">y</text>
+  `;
+  return `<div class="graph-content"><svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Coordinate graph">${grid}${axes}${curve}</svg></div>`;
+}
+
+function renderMapping({ x, y, links }, cardId) {
+  const markerId = `arr-${cardId}`;
+  const nodeR = 16;
+  const rowH = 46;
+  const leftX = 34, rightX = 226;
+  const width = 260;
+  const nLeft = x.length, nRight = y.length;
+  const maxN = Math.max(nLeft, nRight);
+  const topPad = 30;
+  const height = topPad + maxN * rowH + 10;
+  const leftStart = topPad + ((maxN - nLeft) * rowH) / 2;
+  const rightStart = topPad + ((maxN - nRight) * rowH) / 2;
+
+  const leftCircles = x.map((v, i) => {
+    const cy = leftStart + i * rowH + nodeR;
+    return `<circle cx="${leftX}" cy="${cy}" r="${nodeR}" fill="var(--bg-elev)" stroke="var(--border)" stroke-width="1"/>
+      <text x="${leftX}" y="${cy+5}" text-anchor="middle" fill="var(--text)" font-family="DM Mono, monospace" font-size="14">${v}</text>`;
+  }).join('');
+
+  const rightCircles = y.map((v, i) => {
+    const cy = rightStart + i * rowH + nodeR;
+    return `<circle cx="${rightX}" cy="${cy}" r="${nodeR}" fill="var(--bg-elev)" stroke="var(--border)" stroke-width="1"/>
+      <text x="${rightX}" y="${cy+5}" text-anchor="middle" fill="var(--text)" font-family="DM Mono, monospace" font-size="14">${v}</text>`;
+  }).join('');
+
+  const arrows = links.map(([li, ri]) => {
+    const y1 = leftStart + li * rowH + nodeR;
+    const y2 = rightStart + ri * rowH + nodeR;
+    const cx1 = leftX + nodeR + 2;
+    const cx2 = rightX - nodeR - 8;
+    const mid = (cx1 + cx2) / 2;
+    return `<path d="M ${cx1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${cx2} ${y2}" fill="none" stroke="var(--crimson)" stroke-width="2" marker-end="url(#${markerId})"/>`;
+  }).join('');
+
+  const titles = `
+    <text x="${leftX}" y="18" text-anchor="middle" fill="var(--text-dim)" font-size="10" font-family="DM Sans, sans-serif" letter-spacing="1.5">INPUT</text>
+    <text x="${rightX}" y="18" text-anchor="middle" fill="var(--text-dim)" font-size="10" font-family="DM Sans, sans-serif" letter-spacing="1.5">OUTPUT</text>
+  `;
+
+  return `<div class="mapping-content"><svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mapping diagram" style="max-height:280px;">
+    <defs><marker id="${markerId}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--crimson)"/></marker></defs>
+    ${titles}${arrows}${leftCircles}${rightCircles}
+  </svg></div>`;
+}
+
+function renderEquation(text) {
+  const html = text
+    .replace(/²/g, '<sup>2</sup>')
+    .replace(/√\(([^)]+)\)/g, '√<span style="border-top:1.5px solid currentColor; padding-top:2px;">$1</span>');
+  return `<div class="eq-content">${html}</div>`;
+}
+
+/* =========================================================
+   CARD BUILDING + STACK RENDER
+   ========================================================= */
+function buildCardEl(card, position) {
+  const el = document.createElement('div');
+  el.className = 'card ' + position;
+  el.dataset.id = card.id;
+  const peekBtn = (state.mode === 'teacher' && position === 'top')
+    ? `<div class="card-footer"><button class="peek-btn" data-peek="1" aria-label="Reveal answer">Peek Answer</button></div>`
+    : '';
+  el.innerHTML = `
+    <div class="indicator left" aria-hidden="true">NOT A FUNCTION</div>
+    <div class="indicator right" aria-hidden="true">FUNCTION</div>
+    <div class="card-header">
+      <span class="rep-badge">${card.label}</span>
+      <span class="card-num">#${state.idx + 1}</span>
+    </div>
+    <div class="card-body">${renderContent(card)}</div>
+    ${peekBtn}
+    <div class="result-overlay">
+      <div class="result-header">
+        <span class="result-icon"></span>
+        <span class="result-title"></span>
+      </div>
+      <div class="result-verdict"></div>
+      <div class="result-why"></div>
+      <div class="result-actions">
+        <button class="next-btn">Next Card →</button>
+      </div>
+    </div>
+  `;
+  return el;
+}
+
+function renderStack() {
+  stack.innerHTML = '';
+  if (state.idx >= state.deck.length) return;
+
+  const positions = ['top', 'behind', 'behind2'];
+  for (let i = 0; i < 3 && state.idx + i < state.deck.length; i++) {
+    const card = state.deck[state.idx + i];
+    const el = buildCardEl(card, positions[i]);
+    stack.appendChild(el);
+  }
+
+  attachTopCardHandlers();
+}
+
+function attachTopCardHandlers() {
+  const top = stack.querySelector('.card.top');
+  if (!top) return;
+
+  top.addEventListener('pointerdown', onPointerDown);
+  top.addEventListener('pointermove', onPointerMove);
+  top.addEventListener('pointerup', onPointerUp);
+  top.addEventListener('pointercancel', onPointerUp);
+
+  const nextBtn = top.querySelector('.next-btn');
+  if (nextBtn) nextBtn.addEventListener('click', advance);
+
+  const peek = top.querySelector('[data-peek]');
+  if (peek) peek.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showReview(null, /*isPeek=*/true);
+  });
+}
+
+/* =========================================================
+   SWIPE HANDLING (pointer events)
+   ========================================================= */
+let dragState = null;
+
+function onPointerDown(e) {
+  if (state.reviewing || state.advancing) return;
+  // Don't start drag on interactive elements
+  if (e.target.closest('button')) return;
+  const card = e.currentTarget;
+  dragState = {
+    card,
+    startX: e.clientX,
+    startY: e.clientY,
+    dx: 0,
+    dy: 0,
+    pointerId: e.pointerId
+  };
+  try { card.setPointerCapture(e.pointerId); } catch (_) {}
+  card.classList.add('dragging');
+}
+
+function onPointerMove(e) {
+  if (!dragState) return;
+  dragState.dx = e.clientX - dragState.startX;
+  dragState.dy = e.clientY - dragState.startY;
+  const rot = dragState.dx * 0.06;
+  dragState.card.style.transform = `translate(${dragState.dx}px, ${dragState.dy * 0.25}px) rotate(${rot}deg)`;
+  dragState.card.classList.toggle('drag-right', dragState.dx > 30);
+  dragState.card.classList.toggle('drag-left', dragState.dx < -30);
+}
+
+function onPointerUp(e) {
+  if (!dragState) return;
+  const { card, dx } = dragState;
+  const THRESHOLD = 90;
+  card.classList.remove('dragging');
+
+  if (Math.abs(dx) > THRESHOLD) {
+    const answer = dx > 0; // right swipe = Function
+    commit(answer);
+  } else {
+    card.style.transform = '';
+    card.classList.remove('drag-right', 'drag-left');
+  }
+  dragState = null;
+}
+
+/* Tap-button fallback */
+actionBar.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-answer]');
+  if (!btn) return;
+  if (state.reviewing || state.advancing) return;
+  if (state.idx >= state.deck.length) return;
+  const answer = btn.dataset.answer === 'true';
+  commit(answer);
+});
+
+/* Keyboard support */
+document.addEventListener('keydown', (e) => {
+  if (state.advancing) return;
+  if (state.reviewing) {
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      advance();
+    }
+    return;
+  }
+  if (state.idx >= state.deck.length) return;
+  if (e.key === 'ArrowRight') { e.preventDefault(); commit(true); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); commit(false); }
+});
+
+/* =========================================================
+   COMMIT / REVIEW / ADVANCE
+   ========================================================= */
+function commit(answer) {
+  const card = state.deck[state.idx];
+  const correct = (answer === card.isFunction);
+
+  state.results.push({ id: card.id, type: card.type, correct });
+  if (correct) {
+    state.correct++;
+    state.streak++;
+    if (state.streak > state.bestStreak) state.bestStreak = state.streak;
+  } else {
+    state.streak = 0;
+  }
+
+  const top = stack.querySelector('.card.top');
+  if (top) {
+    top.style.transform = '';
+    top.classList.remove('drag-right', 'drag-left');
+  }
+
+  updateHUD();
+  showReview(answer, false);
+}
+
+function showReview(userAnswered, isPeek) {
+  const card = state.deck[state.idx];
+  const top = stack.querySelector('.card.top');
+  if (!top) return;
+
+  state.reviewing = true;
+
+  const overlay = top.querySelector('.result-overlay');
+  const header = overlay.querySelector('.result-header');
+  const icon = overlay.querySelector('.result-icon');
+  const title = overlay.querySelector('.result-title');
+  const verdict = overlay.querySelector('.result-verdict');
+  const whyBox = overlay.querySelector('.result-why');
+
+  overlay.classList.remove('correct', 'wrong', 'peek');
+  header.classList.remove('correct', 'wrong', 'peek');
+  icon.classList.remove('correct', 'wrong', 'peek');
+
+  if (isPeek) {
+    overlay.classList.add('peek');
+    header.classList.add('peek');
+    icon.classList.add('peek');
+    icon.textContent = '👁';
+    title.textContent = 'Answer Revealed';
+    verdict.innerHTML = `This <strong>${card.isFunction ? 'IS' : 'is NOT'}</strong> a function.`;
+  } else {
+    const correct = (userAnswered === card.isFunction);
+    if (correct) {
+      overlay.classList.add('correct');
+      header.classList.add('correct');
+      icon.classList.add('correct');
+      icon.textContent = '✓';
+      title.textContent = 'Correct!';
+    } else {
+      overlay.classList.add('wrong');
+      header.classList.add('wrong');
+      icon.classList.add('wrong');
+      icon.textContent = '✗';
+      title.textContent = 'Not quite';
+    }
+    verdict.innerHTML = `This <strong>${card.isFunction ? 'IS' : 'is NOT'}</strong> a function.`;
+  }
+
+  let whyHTML = `<h4>Reasoning</h4><div>${card.why}</div>`;
+  if (card.misconception) {
+    whyHTML += `<div class="misconception"><strong>Watch out:</strong> ${card.misconception}</div>`;
+  }
+  whyBox.innerHTML = whyHTML;
+
+  top.classList.add('reviewing');
+}
+
+function advance() {
+  if (state.advancing) return;
+  state.advancing = true;
+  state.reviewing = false;
+
+  const currentTop = stack.querySelector('.card.top');
+  if (currentTop) {
+    currentTop.classList.add('exit-up');
+  }
+
+  setTimeout(() => {
+    state.idx++;
+    if (state.idx >= state.deck.length) {
+      showSummary();
+      state.advancing = false;
+      return;
+    }
+    updateHUD();
+    renderStack();
+    state.advancing = false;
+  }, 260);
+}
+
+function showSummary() {
+  stack.innerHTML = '';
+  actionBar.style.display = 'none';
+  instructions.style.display = 'none';
+
+  const attempted = state.results.length;
+  document.getElementById('finalScore').textContent = attempted > 0
+    ? `${state.correct} / ${attempted}`
+    : `— / —`;
+  document.getElementById('bestStreakLine').textContent = `Best streak: ${state.bestStreak}`;
+
+  const types = ['pairs', 'table', 'graph', 'mapping', 'equation'];
+  const labels = { pairs: 'Pairs', table: 'Table', graph: 'Graph', mapping: 'Map', equation: 'Eq.' };
+  const breakdown = document.getElementById('breakdown');
+  breakdown.innerHTML = types.map(t => {
+    const results = state.results.filter(r => r.type === t);
+    const c = results.filter(r => r.correct).length;
+    const label = results.length > 0 ? `${c}/${results.length}` : '—';
+    return `<div class="cat"><span class="score">${label}</span><span class="label">${labels[t]}</span></div>`;
+  }).join('');
+
+  summary.classList.add('active');
+}
+
+document.getElementById('restart').addEventListener('click', () => {
+  summary.classList.remove('active');
+  actionBar.style.display = '';
+  instructions.style.display = '';
+  initDeck();
+  updateHUD();
+  renderStack();
+});
+
+/* =========================================================
+   MODE TOGGLE
+   ========================================================= */
+document.querySelector('.mode-toggle').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-mode]');
+  if (!btn) return;
+  document.querySelectorAll('.mode-toggle button').forEach(b => {
+    const on = (b === btn);
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  state.mode = btn.dataset.mode;
+  summary.classList.remove('active');
+  actionBar.style.display = '';
+  instructions.style.display = '';
+  initDeck();
+  updateHUD();
+  renderStack();
+});
+
+/* =========================================================
+   BOOT
+   ========================================================= */
+initDeck();
+updateHUD();
+renderStack();
+</script>
+</body>
+</html>
